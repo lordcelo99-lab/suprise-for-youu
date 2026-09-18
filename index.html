@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Birthday Adventure — Unlock the Wishes</title>
+<meta name="description" content="Sebuah perjalanan kecil sebelum ucapan ulang tahun terbuka." />
+
+<!-- Fonts: Fraunces (display, hangat & personal) + Sora (UI/game, modern & rapi) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- Ambient night-sky canvas: stars + drifting particles, lives behind everything -->
+<canvas id="sky-canvas"></canvas>
+
+<!-- Cursor sparkle trail -->
+<canvas id="sparkle-canvas"></canvas>
+
+<!-- Confetti canvas, used for level-complete + final surprise -->
+<canvas id="confetti-canvas"></canvas>
+
+<!-- Small persistent HUD: clock + progress, hidden on splash -->
+<div id="hud" class="hud hidden">
+  <div class="hud-clock" id="digital-clock" aria-label="Jam saat ini">--:--</div>
+  <ul class="hud-progress" id="progress-list">
+    <li data-step="1" class="prog-item">LEVEL 1</li>
+    <li data-step="2" class="prog-item">LEVEL 2</li>
+    <li data-step="3" class="prog-item">LEVEL 3</li>
+    <li data-step="4" class="prog-item">WISHES 🔓</li>
+  </ul>
+</div>
+
+<main id="app">
+
+  <!-- ============ SCREEN 0 : SPLASH ============ -->
+  <section class="screen active" id="screen-splash" data-screen="splash">
+    <div class="glass-card splash-card">
+      <p class="eyebrow-soft">✨ Ada sesuatu untukmu...</p>
+      <h1 class="display-text">Siap memulai<br/>perjalanan?</h1>
+      <p class="sub-text">Sebelum sampai di ucapannya, ada beberapa langkah kecil dulu. Santai saja, nggak ada yang sulit.</p>
+      <button class="btn-primary" id="btn-start">
+        <span>START THE ADVENTURE</span>
+        <span class="arrow">→</span>
+      </button>
+      <div class="loader-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 1 : LEVEL 1 - TEBAK KODE ============ -->
+  <section class="screen" id="screen-level1" data-screen="level1">
+    <div class="glass-card game-card">
+      <p class="level-tag">🔐 LEVEL 1</p>
+      <h2 class="game-title">Temukan kode rahasianya!</h2>
+      <p class="game-hint" id="level1-hint">Kode ini terdiri dari 4 angka.</p>
+
+      <div class="code-input-row" id="code-input-row">
+        <input type="tel" inputmode="numeric" maxlength="1" class="code-digit" data-index="0" autocomplete="off" />
+        <input type="tel" inputmode="numeric" maxlength="1" class="code-digit" data-index="1" autocomplete="off" />
+        <input type="tel" inputmode="numeric" maxlength="1" class="code-digit" data-index="2" autocomplete="off" />
+        <input type="tel" inputmode="numeric" maxlength="1" class="code-digit" data-index="3" autocomplete="off" />
+      </div>
+
+      <p class="feedback-text" id="level1-feedback" aria-live="polite"></p>
+
+      <button class="btn-primary" id="btn-unlock">UNLOCK</button>
+
+      <div class="success-panel hidden" id="level1-success">
+        <p class="success-text">ACCESS GRANTED ✨</p>
+        <button class="btn-secondary" id="btn-to-level2">NEXT LEVEL</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2 : LEVEL 2 - PILIH BINTANG ============ -->
+  <section class="screen" id="screen-level2" data-screen="level2">
+    <div class="glass-card game-card wide">
+      <p class="level-tag">⭐ LEVEL 2</p>
+      <h2 class="game-title">Klik bintang yang paling terang!</h2>
+      <p class="game-hint">Satu di antaranya berbeda. Perhatikan baik-baik.</p>
+
+      <div class="star-field" id="star-field" aria-label="Area permainan bintang"></div>
+
+      <p class="feedback-text" id="level2-feedback" aria-live="polite"></p>
+
+      <div class="success-panel hidden" id="level2-success">
+        <p class="success-text">Nice! Kamu menemukannya ✨</p>
+        <button class="btn-secondary" id="btn-to-level3">NEXT LEVEL</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 3 : LEVEL 3 - PESAN TERSEMBUNYI ============ -->
+  <section class="screen" id="screen-level3" data-screen="level3">
+    <div class="glass-card game-card">
+      <p class="level-tag">💌 LEVEL 3</p>
+
+      <div class="flip-card" id="flip-card">
+        <div class="flip-card-inner" id="flip-card-inner">
+          <div class="flip-card-front">
+            <p class="flip-front-text">Kadang sesuatu yang sederhana<br/>menyimpan arti yang besar.</p>
+            <button class="btn-primary" id="btn-open-secret">OPEN THE SECRET</button>
+          </div>
+          <div class="flip-card-back">
+            <p class="flip-back-text">Kamu sudah sampai sejauh ini...</p>
+            <p class="flip-back-text sub">Sekarang waktunya membuka sesuatu yang sebenarnya.</p>
+            <button class="btn-primary" id="btn-open-wish">OPEN MY BIRTHDAY WISH 🎁</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 4 : MAIN BIRTHDAY PAGE ============ -->
+  <section class="screen" id="screen-main" data-screen="main">
+
+    <!-- HERO -->
+    <div class="hero-block">
+      <p class="hero-emoji" id="hero-emoji">🎉 HAPPY BIRTHDAY 🎉</p>
+      <h1 class="hero-name" id="recipient-name">Nama Penerima</h1>
+      <p class="hero-sub">Selamat bertambah usia!</p>
+      <p class="hero-typing" id="hero-typing" aria-live="polite"></p>
+
+      <div class="mini-widgets">
+        <div class="widget-pill" id="age-counter-widget">
+          <span class="widget-label">Usia sekarang</span>
+          <span class="widget-value"><span id="age-counter">0</span> tahun</span>
+        </div>
+      </div>
+
+      <button class="btn-ghost" id="btn-replay-anim">↺ Replay Animation</button>
+    </div>
+
+    <!-- WISH CARDS -->
+    <div class="section-block">
+      <h2 class="section-heading">Beberapa kartu untukmu</h2>
+      <p class="section-caption">Buka satu per satu, nggak perlu buru-buru.</p>
+
+      <div class="wish-cards-grid">
+        <button class="wish-card" data-card="1">
+          <span class="wish-card-icon">🌟</span>
+          <span class="wish-card-title">MY WISH FOR YOU</span>
+          <span class="wish-card-hint">Tap untuk membuka</span>
+        </button>
+        <button class="wish-card" data-card="2">
+          <span class="wish-card-icon">🤍</span>
+          <span class="wish-card-title">A LITTLE PRAYER</span>
+          <span class="wish-card-hint">Tap untuk membuka</span>
+        </button>
+        <button class="wish-card" data-card="3">
+          <span class="wish-card-icon">🌙</span>
+          <span class="wish-card-title">FOR YOUR FUTURE</span>
+          <span class="wish-card-hint">Tap untuk membuka</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- WRITE YOUR OWN WISH -->
+    <div class="section-block">
+      <h2 class="section-heading">💌 Tulis ucapanmu sendiri</h2>
+      <p class="section-caption">Ini buat kamu yang mau balas dengan kata-katamu sendiri.</p>
+
+      <div class="glass-card write-wish-card">
+        <textarea id="own-wish-input" class="wish-textarea" placeholder="Tulis doa atau ucapan untuk Nama Penerima..." rows="4"></textarea>
+        <div class="write-wish-actions">
+          <button class="btn-primary small" id="btn-save-wish">SAVE MY WISH ✨</button>
+          <button class="btn-ghost small" id="btn-clear-wish">Clear Wish</button>
+        </div>
+        <div class="saved-wishes" id="saved-wishes-list"></div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="section-block">
+      <h2 class="section-heading">🌙 A New Chapter</h2>
+      <p class="section-caption">Bukan babak yang serius kok, cuma penanda kecil.</p>
+
+      <div class="timeline" id="timeline">
+        <div class="timeline-item" data-chapter="1">
+          <span class="timeline-dot"></span>
+          <div class="timeline-content">
+            <p class="timeline-title">Chapter 01</p>
+            <p class="timeline-text">Another year</p>
+            <!-- Ganti "chapter-1.jpg" dengan nama file fotomu di assets/photos/.
+                 Kalau file tidak ditemukan, foto otomatis disembunyikan (tidak error). -->
+            <div class="timeline-photo-wrap">
+              <img class="timeline-photo" src="assets/photos/chapter-1.jpg" alt="Chapter 01"
+                   onerror="this.closest('.timeline-photo-wrap').style.display='none'" />
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item" data-chapter="2">
+          <span class="timeline-dot"></span>
+          <div class="timeline-content">
+            <p class="timeline-title">Chapter 02</p>
+            <p class="timeline-text">New memories</p>
+            <div class="timeline-photo-wrap">
+              <img class="timeline-photo" src="assets/photos/chapter-2.jpg" alt="Chapter 02"
+                   onerror="this.closest('.timeline-photo-wrap').style.display='none'" />
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item" data-chapter="3">
+          <span class="timeline-dot"></span>
+          <div class="timeline-content">
+            <p class="timeline-title">Chapter 03</p>
+            <p class="timeline-text">New dreams</p>
+            <div class="timeline-photo-wrap">
+              <img class="timeline-photo" src="assets/photos/chapter-3.jpg" alt="Chapter 03"
+                   onerror="this.closest('.timeline-photo-wrap').style.display='none'" />
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item" data-chapter="4">
+          <span class="timeline-dot"></span>
+          <div class="timeline-content">
+            <p class="timeline-title">Chapter 04</p>
+            <p class="timeline-text">New adventures</p>
+            <div class="timeline-photo-wrap">
+              <img class="timeline-photo" src="assets/photos/chapter-4.jpg" alt="Chapter 04"
+                   onerror="this.closest('.timeline-photo-wrap').style.display='none'" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINAL SURPRISE TRIGGER -->
+    <div class="section-block center-block">
+      <button class="btn-primary large" id="btn-final-surprise">ONE LAST SURPRISE 🎁</button>
+    </div>
+
+    <footer class="page-footer">
+      <p>dibuat dengan niat baik, untukmu 🤍</p>
+    </footer>
+  </section>
+
+</main>
+
+<!-- ============ MODAL: WISH CARD DETAIL ============ -->
+<div class="modal-overlay" id="wish-modal-overlay">
+  <div class="glass-card modal-card" id="wish-modal-card">
+    <button class="modal-close" id="wish-modal-close" aria-label="Tutup">✕</button>
+    <p class="modal-icon" id="wish-modal-icon">🌟</p>
+    <h3 class="modal-title" id="wish-modal-title">MY WISH FOR YOU</h3>
+    <p class="modal-text" id="wish-modal-text"></p>
+  </div>
+</div>
+
+<!-- ============ MODAL: FINAL SURPRISE / GIFT BOX ============ -->
+<div class="modal-overlay dark" id="gift-modal-overlay">
+  <div class="gift-stage">
+    <div class="gift-box" id="gift-box" role="button" tabindex="0" aria-label="Buka kotak hadiah">
+      <div class="gift-lid"></div>
+      <div class="gift-base"></div>
+      <div class="gift-ribbon-v"></div>
+      <div class="gift-ribbon-h"></div>
+    </div>
+    <p class="gift-hint" id="gift-hint">Ketuk kotaknya...</p>
+
+    <div class="final-message hidden" id="final-message">
+      <p class="final-title" id="final-title">🎉 HAPPY BIRTHDAY! 🎉</p>
+      <p class="final-sub">Semoga tahun ini menjadi salah satu chapter terbaik dalam hidupmu.</p>
+      <button class="btn-primary" id="btn-play-again">PLAY AGAIN 🔄</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating music toggle -->
+<button class="music-fab" id="music-toggle" aria-label="Nyala/matikan musik">🎵</button>
+<div class="music-toast hidden" id="music-toast">Musik diblokir browser — tap 🎵 untuk memutar</div>
+
+<audio id="bg-audio" preload="none"></audio>
+
+<!-- tiny UI sound effects (optional, silently ignored if missing) -->
+<audio id="sfx-click" preload="none" src="assets/sfx-click.mp3"></audio>
+<audio id="sfx-success" preload="none" src="assets/sfx-success.mp3"></audio>
+<audio id="sfx-gift" preload="none" src="assets/sfx-gift.mp3"></audio>
+
+<script src="script.js"></script>
+</body>
+</html>
